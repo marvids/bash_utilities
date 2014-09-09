@@ -1,0 +1,54 @@
+#!/bin/bash
+
+__BUS_COMMANDS_TABLE=()
+
+add-command() {
+    local FUNCTION="NULL"
+    local HELP="NULL"
+    local COMMAND="NULL"
+
+    while [ $# -gt 0 ]; do
+        case "$1" in
+            -c|--command)
+                COMMAND=$2
+                shift 2
+                ;;
+            -f|--function)
+                FUNCTION=$2
+                shift 2
+                ;;
+            -h|--help)
+                HELP=$2
+                shift 2
+                ;;
+            *)
+                echo "error! $FUNCNAME: unrecognized option, $1"
+                exit -1
+                ;;
+        esac
+    done
+    __BUS_COMMANDS_TABLE=("$COMMAND $FUNCTION $HELP")
+}
+
+parse-commands() {
+    while [ $# -gt 0 ]; do
+        for COMMAND_STRING in "${__BUS_COMMANDS_TABLE[@]}"; do
+            local COMMAND_ARRAY=($COMMAND_STRING)
+            local COMMAND=${COMMAND_ARRAY[0]}
+            local FUNCTION=${COMMAND_ARRAY[1]}
+            if [ "$1" == "$COMMAND" ]; then
+                shift
+                $FUNCTION $@
+                return
+            fi
+        done
+        shift
+    done
+    echo $@
+}
+
+parse-arguments() {
+    __BUS_ARGS=$@
+    parse-options $__BUS_ARGS
+    parse-commands $__BUS_ARGS
+}

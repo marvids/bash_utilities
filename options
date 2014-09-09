@@ -1,0 +1,91 @@
+#!/bin/bash
+
+__BUS_OPTIONS_TABLE=()
+
+add-option() {
+    local LONGNAME="NULL"
+    local SHORTNAME="NULL"
+    local ACTION=store
+    local HELP="NULL"
+
+    while [ $# -gt 0 ]; do
+        case "$1" in
+            -l|--long-name)
+                LONGNAME=$2
+                shift 2
+                ;;
+            -s|--short-name)
+                SHORTNAME=$2
+                shift 2
+                ;;
+            -a|--action)
+                case $2 in store|store_true)
+                    ACTION=$2
+                    shift 2
+                    ;;
+                *)
+                    echo "error! $FUNCNAME: unsupported action, $2"
+                    exit -1
+                    ;;
+                esac
+                ;;
+            -h|--help)
+                HELP=$2
+                shift 2
+                ;;
+            *)
+                echo "error! $FUNCNAME: unrecognized option, $1"
+                exit -1
+                ;;
+        esac
+    done
+    if [ "$LONGNAME" == "NULL" ] && [ "$SHORTNAME" == "NULL" ]; then
+        echo "error! $FUNCNAME: option must have either shortname or longname, or both"
+        exit -1
+    fi
+    __BUS_OPTIONS_TABLE+=("$LONGNAME $SHORTNAME $ACTION")
+}
+
+parse-options() {
+    while [ $# -gt 0 ]; do
+        local OPTION_FOUND=0
+
+        if [[ $1 == -* ]]; then
+            for OPTION_STRING in "${__BUS_OPTIONS_TABLE[@]}"; do
+                local OPTION_ARRAY=($OPTION_STRING)
+                local LONGNAME=${OPTION_ARRAY[0]}
+                local SHORTNAME=${OPTION_ARRAY[1]}
+                local ACTION=${OPTION_ARRAY[2]}
+                local VARNAME=__BUS_OPTION_${LONGNAME:-$SHORTNAME}
+
+                if [ "$1" == "--$LONGNAME" ] || [ "$1" == "-$SHORTNAME" ]; then
+                    case $ACTION in
+                        store)
+                            read "$VARNAME" <<< "$2"
+                            shift
+                            ;;
+                        store_true)
+                            read "$VARNAME" <<< "1"
+                            ;;
+                    esac
+                    OPTION_FOUND=1
+                    break
+                fi
+            done
+            if [ "$OPTION_FOUND" == 1 ]; then
+                shift
+                continue
+            fi
+            echo "unknown option $1"
+            exit -1
+        else
+            __BUS_ARGS=$@
+            return
+        fi
+    done
+}
+
+get-option() {
+    local VARNAME=__BUS_OPTION_$1
+    echo "${!VARNAME}"
+}
