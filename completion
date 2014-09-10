@@ -1,0 +1,14 @@
+#!/bin/bash
+
+__complete_bash_utility() {
+    COMPREPLY=()
+    local CANDIDATES=""
+    local ARGS="${COMP_WORDS[*]:1:COMP_CWORD-1}"
+
+    if [[ ${COMP_WORDS[COMP_CWORD]} == -* ]]; then
+        local CANDIDATES=$( "${COMP_WORDS[0]}" --__list_options "$ARGS" )
+    fi
+    COMPREPLY=( $( compgen -W "$CANDIDATES" -- "${COMP_WORDS[COMP_CWORD]}") )
+}
+
+complete -F __complete_bash_utility $(basename $BASH_SOURCE)

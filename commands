@@ -38,17 +38,17 @@ parse-commands() {
             local FUNCTION=${COMMAND_ARRAY[1]}
             if [ "$1" == "$COMMAND" ]; then
                 shift
-                $FUNCTION $@
+                $FUNCTION "$@"
                 return
             fi
         done
         shift
     done
-    echo $@
 }
 
 parse-arguments() {
-    __BUS_ARGS=$@
+    __BUS_ARGS="$*"
     parse-options $__BUS_ARGS
     parse-commands $__BUS_ARGS
+    list-options
 }

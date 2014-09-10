@@ -39,18 +39,26 @@ add-option() {
                 ;;
         esac
     done
+
     if [ "$LONGNAME" == "NULL" ] && [ "$SHORTNAME" == "NULL" ]; then
         echo "error! $FUNCNAME: option must have either shortname or longname, or both"
         exit -1
     fi
-    __BUS_OPTIONS_TABLE+=("$LONGNAME $SHORTNAME $ACTION")
+
+    __BUS_OPTIONS_TABLE+=("$LONGNAME $SHORTNAME $ACTION $HELP")
 }
 
 parse-options() {
     while [ $# -gt 0 ]; do
-        local OPTION_FOUND=0
+        local OPTION_FOUND=false
 
         if [[ $1 == -* ]]; then
+            if [[ $1 == "--__list_options" ]]; then
+                __BUS_LIST_OPTIONS=true
+                shift
+                continue
+            fi
+
             for OPTION_STRING in "${__BUS_OPTIONS_TABLE[@]}"; do
                 local OPTION_ARRAY=($OPTION_STRING)
                 local LONGNAME=${OPTION_ARRAY[0]}
@@ -61,18 +69,24 @@ parse-options() {
                 if [ "$1" == "--$LONGNAME" ] || [ "$1" == "-$SHORTNAME" ]; then
                     case $ACTION in
                         store)
-                            read "$VARNAME" <<< "$2"
+                            local ARG="$2"
+                            if [[ $ARG == -* ]] || [[ -z $ARG ]]; then
+                                echo "error! option $1 takes an argument"
+                                exit 0
+                            fi
+                            read "$VARNAME" <<< "$ARG"
                             shift
                             ;;
                         store_true)
-                            read "$VARNAME" <<< "1"
+                            read "$VARNAME" <<< "true"
                             ;;
                     esac
-                    OPTION_FOUND=1
+                    OPTION_FOUND=true
                     break
                 fi
             done
-            if [ "$OPTION_FOUND" == 1 ]; then
+
+            if [[ $OPTION_FOUND == true ]]; then
                 shift
                 continue
             fi
@@ -88,4 +102,16 @@ parse-options() {
 get-option() {
     local VARNAME=__BUS_OPTION_$1
     echo "${!VARNAME}"
+}
+
+list-options() {
+    if [[ $__BUS_LIST_OPTIONS == true ]]; then
+        for OPTION_STRING in "${__BUS_OPTIONS_TABLE[@]}"; do
+            local OPTION_ARRAY=($OPTION_STRING)
+            local LONGNAME=${OPTION_ARRAY[0]}
+            [[ ! $LONGNAME == NULL ]] && OPTIONS+="--$LONGNAME "
+        done
+        echo "$OPTIONS"
+        exit 0
+    fi
 }
